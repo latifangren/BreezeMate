@@ -25,18 +25,27 @@ Buka menu **Tools** -> **Manage Libraries...**, cari dan install library:
 
 ---
 
-## 2. Konfigurasi Kode Wi-Fi
+## 2. Konfigurasi Jumlah Zona & Wi-Fi
 
 1. Buka file firmware utama:
    ```text
    firmware/BreezeMate/BreezeMate.ino
    ```
-2. Temukan baris konfigurasi Wi-Fi di bagian atas file (baris 25–26):
+2. **Pilih Jumlah Zona Fisik:**
+   Pada baris 22, pilih berapa zona relay yang kamu pasang:
+   ```cpp
+   // 1 = Budget Setup (1 Relay, 1 PWM)
+   // 2 = Dual-Zone Setup (2 Relay)
+   // 3 = Tri-Zone Setup (3 Relay)
+   #define ACTIVE_ZONES      1   // Default: 1 Zona
+   ```
+3. **Masukkan Kredensial Wi-Fi Rumah:**
+   Pada baris 27–28:
    ```cpp
    const char* WIFI_SSID     = "NAMA_WIFI_RUMAHMU";   // Ganti dengan nama Wi-Fi rumahmu
    const char* WIFI_PASSWORD = "PASSWORD_WIFI_KAMU";  // Ganti dengan password Wi-Fi rumahmu
    ```
-3. Simpan perubahan file (`Ctrl + S`).
+4. Simpan perubahan file (`Ctrl + S`).
 
 ---
 
