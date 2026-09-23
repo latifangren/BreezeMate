@@ -1,79 +1,74 @@
 # ⚡ BreezeMate — Skema Pengkabelan & Perakitan (Wiring Guide)
 
-Panduan lengkap instalasi elektrikal sistem pendingin ruangan multi-zona BreezeMate berbasis tegangan rendah (12V DC).
+Panduan instalasi elektrikal sistem pendingin BreezeMate untuk mode **Budget 1-Zona** (paling hemat) maupun **Multi-Zona (2–3 Zona)** berbasis tegangan rendah (12V DC).
 
 ---
 
-## 🔌 1. Diagram Skematik Sirkuit Lengkap
+## 🔌 1. Skema Pengkabelan Versi Hemat (Budget 1-Zona)
+> *Gunakan skema ini jika ingin merakit dengan 1 modul relay saja untuk memutus daya semua kipas sekaligus.*
 
 ```text
-[Adaptor DC 12V (+)] --------+---> [Sekring 3A - 5A] ---+---> [Relay Modul VCC (12V In)]
-                             |                          +---> [Buck Converter IN (+)]
-                             |                          +---> [Kapasitor 1000µF 25V (+)]
-                             |
+[Adaptor DC 12V (+)] --------+---> [Sekring 3A] ---> [Buck Converter IN (+)]
+                             |                  ---> [Kapasitor 1000µF 25V (+)]
+                             +---------------------> [Relay Input (COM)]
+
 [Adaptor DC 12V (-)] --------+---> [Buck Converter IN (-)]
                              +---> [Kapasitor 1000µF 25V (-)]
-                             +---> [Kipas Zone 1, 2, 3 Pin 1 (GND)]
+                             +---> [Pin 1 (GND) Seluruh Kipas]
                              +---> [Relay Modul GND]
                              +---> [ESP32 GND]  <=== (COMMON GROUND WAJIB!)
 
---- DISTRIBUSI TEGANGAN KONTROLER (5V & 3.3V) ---
+--- DAYA KE KONTROLER ---
 [Buck Converter OUT (+) 5V] -------> [ESP32 VIN / 5V]
 [Buck Converter OUT (-) GND] ------> [ESP32 GND]
 
-[ESP32 Pin 3.3V] ------------+-----> [VCC Sensor DHT22]
-                             +--[Resistor 4.7k - 10k]---> [Data DHT22]
-                             +--[Resistor 10k Pull-Up]--> [Pin 3 TACH Kipas] (Opsional)
+--- DAYA KE KIPAS VIA RELAY (TRUE 0-RPM) ---
+[Relay Output (NO)] ---------------> [Pin 2 (+12V) Kipas] (Bisa diparalel ke 2-4 kipas)
 
---- MATRIX DAYA RELAY 12V (ZONE 1, 2, 3) ---
-[Relay 1 NO (Normally Open)] ------> [Pin 2 (+12V) Kipas Zone 1]
-[Relay 2 NO (Normally Open)] ------> [Pin 2 (+12V) Kipas Zone 2]
-[Relay 3 NO (Normally Open)] ------> [Pin 2 (+12V) Kipas Zone 3]
-
---- KONTROL SINYAL DARI ESP32 ---
-[ESP32 GPIO 25] -------------------> [Relay IN 1 (Zone 1 Trigger)]
-[ESP32 GPIO 26] -------------------> [Relay IN 2 (Zone 2 Trigger)]
-[ESP32 GPIO 27] -------------------> [Relay IN 3 (Zone 3 Trigger)]
-
-[ESP32 GPIO 18] -------------------> [Pin 4 (PWM) Kipas Seluruh Zona] (Diparalel)
-[ESP32 GPIO 19] -------------------> [Pin 3 (TACH) Kipas Utama] (Interrupt RPM)
-[ESP32 GPIO 23] -------------------> [Pin 2 (Data) DHT22]
+--- KONTROL LOGIKA DARI ESP32 ---
+[ESP32 GPIO 25] -------------------> [Relay IN (Trigger Pemutus 12V)]
+[ESP32 GPIO 18] -------------------> [Pin 4 (PWM) Kipas] (Sinyal 25 kHz)
+[ESP32 GPIO 19] -------------------> [Pin 3 (TACH) Kipas Utama] (Sensor RPM)
+[ESP32 GPIO 23] -------------------> [Pin 2 (Data) DHT22] (+ Resistor Pull-up ke 3.3V)
+[ESP32 3.3V] ----------------------> [VCC DHT22]
 ```
 
 ---
 
-## 🛡️ 2. Aturan Keselamatan & Stabilitas Elektrikal
+## 🔌 2. Skema Pengkabelan Multi-Zona Penuh (2–3 Zona)
+> *Gunakan skema ini jika kipas dibagi dalam beberapa kelompok zona terpisah.*
 
-### A. Wajib Common Ground (Satu Titik Acuan Tegangan)
-Ground dari Adaptor 12V, Buck Converter, Modul Relay, Kipas, dan ESP32 harus saling terhubung. Tanpa common ground:
-- Pulsa PWM (3.3V) dari ESP32 tidak akan terbaca dengan benar oleh sirkuit logic kipas.
-- Kipas bisa berputar liar atau mendengung tanpa kendali.
+```text
+[Adaptor DC 12V (+)] --------+---> [Sekring 5A] ---+---> [Buck Converter IN (+)]
+                             |                     +---> [Kapasitor 1000µF 25V (+)]
+                             |                     +---> [Relay 1, 2, 3 Terminal COM]
+                             |
+[Adaptor DC 12V (-)] --------+---> [Buck Converter IN (-)]
+                             +---> [Kapasitor 1000µF 25V (-)]
+                             +---> [Pin 1 GND Semua Kipas di Semua Zona]
+                             +---> [ESP32 GND]  <=== (COMMON GROUND WAJIB!)
 
-### B. Kapasitor Buffer 12V (Peredam Induktansi Motor)
-- Pasang kapasitor elektrolit **470µF – 1000µF 25V** secara paralel tepat di jalur 12V sebelum masuk ke kipas.
-- **Tujuan:** Saat kipas berputar kencang atau switching PWM aktif, kumparan motor menghasilkan fluktuasi arus (voltage ripple). Kapasitor ini menjaga tegangan tetap mulus sehingga ESP32 tidak mengalami restart tiba-tiba (*brownout*).
+--- RELAY MATRIX (ZONE 1, 2, 3) ---
+[Relay 1 Output NO] ---------------> [Pin 2 (+12V) Kipas Zone 1]
+[Relay 2 Output NO] ---------------> [Pin 2 (+12V) Kipas Zone 2]
+[Relay 3 Output NO] ---------------> [Pin 2 (+12V) Kipas Zone 3]
 
-### C. Proteksi Pin Tachometer (RPM Sense)
-- Pin 3 pada kipas PC berkarakteristik *Open-Collector / Open-Drain*.
-- Gunakan internal pull-up ESP32 (`pinMode(19, INPUT_PULLUP)`) atau resistor eksternal 10kΩ yang ditarik ke **3.3V** ESP32.
-- ⚠️ **Peringatan Keras:** Jangan pernah menarik pull-up ke rel 12V atau 5V. GPIO ESP32 hanya tahan maksimal 3.6V.
+--- KONTROL LOGIKA GPIO ---
+[ESP32 GPIO 25] -------------------> [Relay 1 Trigger (Zone 1)]
+[ESP32 GPIO 26] -------------------> [Relay 2 Trigger (Zone 2)]
+[ESP32 GPIO 27] -------------------> [Relay 3 Trigger (Zone 3)]
 
-### D. Daya Sensor DHT22
-- Hubungkan VCC DHT22 ke pin **3.3V** ESP32 (bukan 5V). Hal ini memastikan sinyal pulsa data dari DHT22 berada pada level tegangan 3.3V yang aman bagi GPIO 23 ESP32.
+[ESP32 GPIO 18] -------------------> [Pin 4 PWM Seluruh Kipas] (Diparalel)
+[ESP32 GPIO 19] -------------------> [Pin 3 TACH Kipas Utama]
+[ESP32 GPIO 23] -------------------> [Pin 2 Data DHT22]
+[ESP32 3.3V] ----------------------> [VCC Sensor DHT22] & Pull-Up
+```
 
 ---
 
-## 🧰 3. Langkah Perakitan Bertahap
+## 🛡️ 3. Aturan Perakitan Wajib
 
-1. **Setting Buck Converter Terlebih Dahulu:**
-   - Sambungkan input Buck Converter ke Adaptor 12V.
-   - Ukur output Buck Converter dengan multimeter, putar potensiometer hingga menghasilkan tepat **5.0V – 5.1V** sebelum dihubungkan ke ESP32 VIN.
-2. **Sambungkan Jalur Ground Bersama:**
-   - Buat terminal ground bersama (bisa menggunakan breadboard, PCB bolong, atau terminal block WAGO).
-3. **Hubungkan Modul Relay:**
-   - Hubungkan input daya modul relay (DC 12V/5V dan GND).
-   - Pasang jalur kabel kontrol GPIO 25, 26, 27 ke pin input modul relay.
-4. **Pasang Kipas & Sensor:**
-   - Pasang kabel 12V kipas melewati terminal COM dan NO pada masing-masing channel relay.
-   - Paralelkan pin 4 (PWM) semua kipas ke GPIO 18 ESP32.
-   - Pasang sensor DHT22 ke GPIO 23 dengan pull-up 4.7kΩ ke 3.3V.
+1. **Common Ground Wajib:** Semua kabel ground (-) harus bertemu di satu titik bersama agar sinyal PWM 3.3V ESP32 terbaca stabil oleh chip kipas.
+2. **Kapasitor Buffer 1000µF:** Pasang paralel pada jalur 12V dekat kipas/relay untuk meredam hentakan arus motor dan mencegah ESP32 restart mendadak (*brownout*).
+3. **Setel Buck Converter Sebelum Disambung ke ESP32:** Putar baut trimpot buck converter hingga multimeter membaca output tepat **5.0V – 5.1V** baru tancapkan ke pin VIN ESP32.
+4. **Resistor Pull-Up:** Pasang resistor 10kΩ dari pin 3.3V ESP32 ke pin TACH (GPIO 19) dan 4.7kΩ ke pin Data DHT22 (GPIO 23).

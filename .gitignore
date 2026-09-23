@@ -4,7 +4,7 @@
 .tmp/
 *.tmp
 *.log
-gemini-code-1790143981221.md
+
 # Secrets & Credentials
 secrets.yaml
 .env

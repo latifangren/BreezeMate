@@ -1,55 +1,60 @@
 /**
- * 🍃 BreezeMate — Standalone ESP32 Multi-Zone Thermal Controller
+ * 🍃 BreezeMate — Modular Multi-Zone Thermal Controller (ESP32)
  * 
- * Hardware:
- * - ESP32 Development Board
- * - DHT22 (AM2302) on GPIO 23
- * - PC Fan 4-Pin PWM on GPIO 18 (25 kHz)
- * - PC Fan Tachometer on GPIO 19
- * - 3x 12V Relays on GPIO 25 (Zone 1), GPIO 26 (Zone 2), GPIO 27 (Zone 3)
- * 
- * Features:
- * - Local Wi-Fi Web Server (Port 80) + mDNS (http://breezemate.local)
- * - SoftAP Fallback ("BreezeMate-AP") if home Wi-Fi not found
- * - 25 kHz Silent Hardware PWM (Intel Standard)
- * - Adaptive Thermal Curve + Anti-Stall (Min 20% PWM) + Hysteresis (±0.5°C)
- * - True 0-RPM 12V Relay Cutoff per zone
- * - Real-time JSON API for WebUI
+ * Fitur:
+ * - 100% Modular: Bisa disetel 1 Zona (Budget/Hemat), 2 Zona, atau 3 Zona (Full Setup).
+ * - WebUI Cyberpunk Bawaan: Tersimpan langsung di flash (Gzip PROGMEM), buka via browser HP!
+ * - 25 kHz Silent Hardware PWM (Intel Standard, tanpa dengung motor).
+ * - True 0-RPM Cutoff via Relay 12V fisik.
+ * - Regulasi Suhu Adaptif dengan Anti-Stall (Min 20%) & Exponential Moving Average.
+ * - mDNS: http://breezemate.local (atau SoftAP fallback "BreezeMate-AP").
  */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <DHT.h>
+#include "index_html.h" // Embedded Gzip WebUI Dashboard
 
 // ==========================================
-// 1. PENGATURAN WI-FI RUMAH
+// 1. PENGATURAN MODULAR ZONA (PILIH DISINI)
+// ==========================================
+// Ganti angka di bawah sesuai jumlah zona kipas fisik yang kamu rakit:
+// 1 = Budget Setup (1 Relay, 1 PWM — Sangat murah & hemat pin, cocok buat ESP32-C3/S2/DevKit)
+// 2 = Dual-Zone Setup (2 Relay)
+// 3 = Tri-Zone Setup (3 Relay — Full Modular Matrix)
+#define ACTIVE_ZONES      1   // Default: 1 Zona (Ubah ke 2 atau 3 jika pasang lebih banyak relay)
+
+// ==========================================
+// 2. KREDENSIAL WI-FI RUMAH
 // ==========================================
 const char* WIFI_SSID     = "NAMA_WIFI_RUMAHMU";   // Ganti dengan SSID Wi-Fi rumahmu
 const char* WIFI_PASSWORD = "PASSWORD_WIFI_KAMU";  // Ganti dengan Password Wi-Fi rumahmu
 
-// Pengaturan SoftAP (Jika Wi-Fi rumah gagal tersambung)
+// Hotspot Darurat (Jika Wi-Fi rumah tidak ditemukan)
 const char* AP_SSID       = "BreezeMate-AP";
 const char* AP_PASSWORD   = "12345678";
 
 // ==========================================
-// 2. PEMETAAN PIN HARDWARE (GPIO)
+// 3. PEMETAAN PIN HARDWARE (GPIO)
 // ==========================================
 #define PIN_FAN_PWM       18  // Output 25 kHz PWM ke Pin 4 Kipas
-#define PIN_FAN_TACH      19  // Input RPM Sensor dari Pin 3 Kipas
-#define PIN_DHT_DATA      23  // Data Sensor DHT22
-#define PIN_RELAY_ZONE1   25  // Pemutus 12V Zona 1
-#define PIN_RELAY_ZONE2   26  // Pemutus 12V Zona 2
-#define PIN_RELAY_ZONE3   27  // Pemutus 12V Zona 3
+#define PIN_FAN_TACH      19  // Input RPM Sensor dari Pin 3 Kipas (Open-Collector)
+#define PIN_DHT_DATA      23  // Data Sensor DHT22 (Pull-up ke 3.3V)
+
+// Pin Relay per Zona
+#define PIN_RELAY_ZONE1   25  // Relay Zona 1
+#define PIN_RELAY_ZONE2   26  // Relay Zona 2 (Aktif jika ACTIVE_ZONES >= 2)
+#define PIN_RELAY_ZONE3   27  // Relay Zona 3 (Aktif jika ACTIVE_ZONES >= 3)
 
 #define DHT_TYPE          DHT22
 
 // Modul relay: Kebanyakan modul relay optocoupler adalah ACTIVE_LOW.
-// Set true jika modul relay kamu menyala saat pin LOW. Set false jika ACTIVE_HIGH.
+// Set true jika modul relay menyala saat pin LOW. Set false jika ACTIVE_HIGH (seperti MOSFET).
 const bool RELAY_ACTIVE_LOW = true;
 
 // ==========================================
-// 3. PARAMETER PWM & THERMAL
+// 4. PARAMETER PWM & THERMAL
 // ==========================================
 const int PWM_FREQ        = 25000; // 25 kHz standar Intel PC Fan
 const int PWM_RES         = 8;     // 8-bit resolusi (0 - 255)
@@ -59,20 +64,32 @@ const int MIN_SAFE_PWM    = 51;    // 20% duty cycle (Anti-Stall motor kipas)
 const int MAX_PWM         = 255;   // 100% duty cycle
 
 // ==========================================
-// 4. STRUKTUR DATA STATE SISTEM
+// 5. STRUKTUR DATA STATE SISTEM
 // ==========================================
 struct ZoneConfig {
   String name;
   uint8_t gpio;
   bool enabled;
   int pwm;
+  int fans;
 };
 
-ZoneConfig zones[3] = {
-  {"Zone 1", PIN_RELAY_ZONE1, true, 58},
-  {"Zone 2", PIN_RELAY_ZONE2, true, 58},
-  {"Zone 3", PIN_RELAY_ZONE3, true, 58}
+#if ACTIVE_ZONES == 1
+ZoneConfig zones[1] = {
+  {"Zone 1", PIN_RELAY_ZONE1, true, 58, 2}
 };
+#elif ACTIVE_ZONES == 2
+ZoneConfig zones[2] = {
+  {"Zone 1", PIN_RELAY_ZONE1, true, 58, 2},
+  {"Zone 2", PIN_RELAY_ZONE2, true, 58, 2}
+};
+#else
+ZoneConfig zones[3] = {
+  {"Zone 1", PIN_RELAY_ZONE1, true, 58, 2},
+  {"Zone 2", PIN_RELAY_ZONE2, true, 58, 2},
+  {"Zone 3", PIN_RELAY_ZONE3, true, 58, 2}
+};
+#endif
 
 String currentMode   = "auto"; // "auto", "night", "manual"
 bool syncLinked      = true;
@@ -90,16 +107,17 @@ int currentRpm                    = 0;
 DHT dht(PIN_DHT_DATA, DHT_TYPE);
 WebServer server(80);
 unsigned long lastSensorRead = 0;
+unsigned long lastWifiCheck  = 0;
 
 // ==========================================
-// 5. INTERRUPT SERVICE ROUTINE (TACHOMETER)
+// 6. INTERRUPT SERVICE ROUTINE (TACHOMETER)
 // ==========================================
 void IRAM_ATTR onTachPulse() {
   tachPulses++;
 }
 
 // ==========================================
-// 6. HELPER FUNGSI RELAY & PWM
+// 7. HELPER FUNGSI RELAY & PWM
 // ==========================================
 void setRelay(uint8_t pin, bool on) {
   if (RELAY_ACTIVE_LOW) {
@@ -123,7 +141,7 @@ int calculateAutoPwm(float temp) {
   if (isnan(temp)) return 153; // Sensor fail-safe (60%)
   
   if (temp < 24.0) {
-    return 0; // Mati atau whisper 20%
+    return 0; // Mati atau 20% whisper
   } else if (temp < 27.0) {
     // 24.0 - 27.0°C -> 25% - 45% (PWM 64 - 115)
     return map((long)(temp * 10), 240, 270, 64, 115);
@@ -137,7 +155,7 @@ int calculateAutoPwm(float temp) {
 }
 
 void updateHardwareActuators() {
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < ACTIVE_ZONES; i++) {
     setRelay(zones[i].gpio, zones[i].enabled);
   }
 
@@ -147,7 +165,7 @@ void updateHardwareActuators() {
     activePwmPercent = map(autoDuty, 0, 255, 0, 100);
     masterPwm = activePwmPercent;
     if (syncLinked) {
-      for (int i = 0; i < 3; i++) zones[i].pwm = activePwmPercent;
+      for (int i = 0; i < ACTIVE_ZONES; i++) zones[i].pwm = activePwmPercent;
     }
     applyPwmDuty(autoDuty);
   } else if (currentMode == "night") {
@@ -163,10 +181,21 @@ void updateHardwareActuators() {
 }
 
 // ==========================================
-// 7. REST API ENDPOINTS
+// 8. REST API & WEB SERVER ROUTES
 // ==========================================
-void handleApiStatus() {
+void handleCORSHeaders() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+void handleOptions() {
+  handleCORSHeaders();
+  server.send(204);
+}
+
+void handleApiStatus() {
+  handleCORSHeaders();
   
   String json = "{";
   json += "\"temperature\":" + String(currentTemp, 1) + ",";
@@ -177,14 +206,15 @@ void handleApiStatus() {
   json += "\"masterPwm\":" + String(masterPwm) + ",";
   json += "\"rpm\":" + String(currentRpm) + ",";
   json += "\"zones\":{";
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < ACTIVE_ZONES; i++) {
     json += "\"" + String(i + 1) + "\":{";
     json += "\"name\":\"" + zones[i].name + "\",";
     json += "\"gpio\":" + String(zones[i].gpio) + ",";
     json += "\"enabled\":" + String(zones[i].enabled ? "true" : "false") + ",";
-    json += "\"pwm\":" + String(zones[i].pwm);
+    json += "\"pwm\":" + String(zones[i].pwm) + ",";
+    json += "\"fans\":" + String(zones[i].fans);
     json += "}";
-    if (i < 2) json += ",";
+    if (i < ACTIVE_ZONES - 1) json += ",";
   }
   json += "}}";
 
@@ -192,12 +222,12 @@ void handleApiStatus() {
 }
 
 void handleApiControl() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
+  handleCORSHeaders();
 
   // Toggle relay per zone
   if (server.hasArg("zone") && server.hasArg("relay")) {
     int z = server.arg("zone").toInt() - 1;
-    if (z >= 0 && z < 3) {
+    if (z >= 0 && z < ACTIVE_ZONES) {
       zones[z].enabled = (server.arg("relay").toInt() == 1);
     }
   }
@@ -216,14 +246,14 @@ void handleApiControl() {
   if (server.hasArg("masterPwm")) {
     masterPwm = constrain(server.arg("masterPwm").toInt(), 0, 100);
     if (syncLinked) {
-      for (int i = 0; i < 3; i++) zones[i].pwm = masterPwm;
+      for (int i = 0; i < ACTIVE_ZONES; i++) zones[i].pwm = masterPwm;
     }
   }
 
   // Set zone PWM (independent)
   if (server.hasArg("zone") && server.hasArg("pwm")) {
     int z = server.arg("zone").toInt() - 1;
-    if (z >= 0 && z < 3) {
+    if (z >= 0 && z < ACTIVE_ZONES) {
       zones[z].pwm = constrain(server.arg("pwm").toInt(), 0, 100);
     }
   }
@@ -235,37 +265,33 @@ void handleApiControl() {
 
   // Master Killswitch: matikan semua relay
   if (server.hasArg("killall")) {
-    for (int i = 0; i < 3; i++) zones[i].enabled = false;
+    for (int i = 0; i < ACTIVE_ZONES; i++) zones[i].enabled = false;
   }
 
   updateHardwareActuators();
   handleApiStatus();
 }
 
+// Melayani WebUI Cyberpunk langsung dari flash memori (Gzip PROGMEM)
 void handleRoot() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  String html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>BreezeMate</title>";
-  html += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
-  html += "<style>body{background:#08090c;color:#00e5ff;font-family:sans-serif;padding:20px;text-align:center}";
-  html += "a{color:#00ff66;font-size:18px;text-decoration:none;border:1px solid #00ff66;padding:10px 20px;border-radius:6px;display:inline-block;margin-top:20px}</style></head>";
-  html += "<body><h1>🍃 BreezeMate Controller Online</h1>";
-  html += "<p>ESP32 IP: " + WiFi.localIP().toString() + "</p>";
-  html += "<p>Status API: <a href='/api/status'>/api/status</a></p>";
-  html += "<p>Buka dashboard lengkap di web browser HP Anda.</p>";
-  html += "</body></html>";
-  server.send(200, "text/html", html);
+  handleCORSHeaders();
+  server.sendHeader("Content-Encoding", "gzip");
+  server.send_P(200, "text/html", (const char*)INDEX_HTML_GZ, INDEX_HTML_SIZE);
 }
 
 // ==========================================
-// 8. SETUP INITIALIZATION
+// 9. SETUP INITIALIZATION
 // ==========================================
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("\n--- [🍃 BreezeMate Starting] ---");
+  Serial.print("Konfigurasi Zona Aktif: ");
+  Serial.print(ACTIVE_ZONES);
+  Serial.println(" Zona");
 
   // Setup Relay Pins
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < ACTIVE_ZONES; i++) {
     pinMode(zones[i].gpio, OUTPUT);
     setRelay(zones[i].gpio, zones[i].enabled);
   }
@@ -290,6 +316,7 @@ void setup() {
   Serial.print("Menghubungkan ke Wi-Fi: ");
   Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   unsigned long startAttempt = millis();
@@ -320,20 +347,30 @@ void setup() {
   // Web Server Routes
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/status", HTTP_GET, handleApiStatus);
+  server.on("/api/status", HTTP_OPTIONS, handleOptions);
   server.on("/api/control", HTTP_GET, handleApiControl);
   server.on("/api/control", HTTP_POST, handleApiControl);
+  server.on("/api/control", HTTP_OPTIONS, handleOptions);
 
   server.begin();
   Serial.println("[OK] Web Server BreezeMate Berjalan di Port 80!");
 }
 
 // ==========================================
-// 9. LOOP UTAMA
+// 10. LOOP UTAMA
 // ==========================================
 void loop() {
   server.handleClient();
 
   unsigned long now = millis();
+
+  // Cek Reconnect Wi-Fi berkala jika terputus
+  if (WiFi.status() != WL_CONNECTED && now - lastWifiCheck >= 10000) {
+    lastWifiCheck = now;
+    if (WiFi.getMode() == WIFI_STA) {
+      WiFi.reconnect();
+    }
+  }
 
   // Baca sensor DHT22 setiap 2 detik
   if (now - lastSensorRead >= 2000) {
@@ -342,8 +379,9 @@ void loop() {
     float h = dht.readHumidity();
 
     if (!isnan(t) && !isnan(h)) {
-      currentTemp  = t;
-      currentHumid = h;
+      // Exponential Moving Average filter (80% nilai lama + 20% nilai baru)
+      currentTemp  = (currentTemp * 0.8f) + (t * 0.2f);
+      currentHumid = (currentHumid * 0.8f) + (h * 0.2f);
     } else {
       Serial.println("[Warn] Gagal membaca data dari DHT22!");
     }

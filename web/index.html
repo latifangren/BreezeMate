@@ -94,13 +94,15 @@
       );
     }
 
-    /* Custom Sliders */
+    /* Custom Sliders (Mobile Touch & Desktop Optimized) */
     input[type=range] {
       -webkit-appearance: none;
       background: transparent;
+      touch-action: none;
+      cursor: pointer;
     }
     input[type=range]::-webkit-slider-runnable-track {
-      height: 7px;
+      height: 8px;
       background: #080a0d;
       border: 1px solid #283040;
       border-radius: 4px;
@@ -108,15 +110,18 @@
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      height: 20px;
-      width: 12px;
-      margin-top: -6.5px;
+      height: 24px;
+      width: 14px;
+      margin-top: -8px;
       background: linear-gradient(to bottom, #00e5ff, #0088aa);
-      border-radius: 2px;
+      border-radius: 3px;
       cursor: pointer;
-      box-shadow: 0 0 8px #00e5ff;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
       border: 1px solid #ffffff;
-      transition: background 0.2s, box-shadow 0.2s;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    input[type=range]::-webkit-slider-thumb:active {
+      transform: scale(1.15);
     }
     input[type=range]:disabled::-webkit-slider-thumb {
       background: #475569;
@@ -146,7 +151,7 @@
   </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-2 sm:p-5 font-chakra">
+<body class="min-h-screen flex items-start sm:items-center justify-center p-2 sm:p-5 font-chakra overflow-x-hidden">
 
   <div class="w-full max-w-6xl bm-frame p-4 sm:p-6 relative">
     
@@ -165,7 +170,7 @@
       </div>
 
       <!-- Quick Telemetry Badges -->
-      <div class="flex items-center space-x-2 sm:space-x-3 text-xs font-mono">
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-[11px] sm:text-xs font-mono">
         <div class="bg-black/60 px-3 py-1 border border-[#202735] flex items-center space-x-2 rounded">
           <span class="w-2 h-2 rounded-full bg-bm-green animate-ping"></span>
           <span class="text-bm-green font-bold tracking-wider">ESP32: LIVE</span>
@@ -285,6 +290,17 @@
           <input type="range" id="targetSlider" min="20" max="30" step="0.5" value="25" class="w-full cursor-pointer" oninput="onTargetSlider(this.value)">
         </div>
 
+        <!-- Fan Hardware Profile Selector -->
+        <div class="bg-black/60 p-2 border border-[#242b38] rounded flex items-center justify-between text-xs font-mono">
+          <span class="text-gray-400 text-[10px] uppercase tracking-wider">FAN SPEC RATING:</span>
+          <select id="fanProfileSelect" onchange="setFanProfile(this.value)" class="bg-[#12161f] text-bm-cyan border border-[#2b3547] rounded px-2 py-0.5 outline-none text-xs font-mono cursor-pointer hover:border-bm-cyan transition-colors">
+            <option value="1500">1500 RPM (Budget / Silent)</option>
+            <option value="1800" selected>1800 RPM (Balanced / Standard)</option>
+            <option value="2200">2200 RPM (Performance)</option>
+            <option value="3000">3000 RPM (High-Speed / Server)</option>
+          </select>
+        </div>
+
         <!-- Master Killswitch / All Relays Off -->
         <div class="pt-1">
           <button type="button" onclick="toggleAllRelays()" id="btnAllRelays" class="w-full py-2 bg-[#201014] hover:bg-bm-red/20 border border-bm-red/40 hover:border-bm-red text-bm-red font-mono text-xs font-bold rounded transition flex items-center justify-center space-x-2">
@@ -358,140 +374,10 @@
       </div>
 
       <!-- 3 Modular Zone Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        <!-- ZONE 1: Modular Fan Group 1 -->
-        <div id="cardZone1" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
-          <!-- Zone Header -->
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <span>ZONE 1</span>
-                <span class="text-gray-500">//</span>
-                <span class="text-gray-400 text-[9px]">GPIO 25 RELAY</span>
-              </div>
-              <input type="text" id="nameZone1" value="ZONE 1" onchange="updateZoneName(1, this.value)"
-                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
-                title="Klik untuk ubah label nama zona">
-              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span id="ledRelay1" class="w-3 h-3 rounded-full led-relay active"></span>
-            </div>
-          </div>
-
-          <!-- Relay Switch Control -->
-          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
-            <div class="font-mono text-xs">
-              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
-              <div id="relayStatus1" class="text-bm-green font-bold">RELAY: ENGAGED</div>
-            </div>
-            <button type="button" onclick="toggleZoneRelay(1)" id="btnRelay1" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
-              CUT 12V
-            </button>
-          </div>
-
-          <!-- Zone Speed Slider -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-xs font-mono">
-              <span class="text-gray-400">SPEED (PWM)</span>
-              <span id="valPwm1" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
-            </div>
-            <input type="range" id="sliderZone1" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(1, this.value)">
-            <div class="flex justify-between text-[10px] font-mono text-gray-500">
-              <span id="zoneRpm1">1320 RPM</span>
-              <span id="zoneWatt1">4.7 W</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ZONE 2: Modular Fan Group 2 -->
-        <div id="cardZone2" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <span>ZONE 2</span>
-                <span class="text-gray-500">//</span>
-                <span class="text-gray-400 text-[9px]">GPIO 26 RELAY</span>
-              </div>
-              <input type="text" id="nameZone2" value="ZONE 2" onchange="updateZoneName(2, this.value)"
-                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
-                title="Klik untuk ubah label nama zona">
-              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span id="ledRelay2" class="w-3 h-3 rounded-full led-relay active"></span>
-            </div>
-          </div>
-
-          <!-- Relay Switch Control -->
-          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
-            <div class="font-mono text-xs">
-              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
-              <div id="relayStatus2" class="text-bm-green font-bold">RELAY: ENGAGED</div>
-            </div>
-            <button type="button" onclick="toggleZoneRelay(2)" id="btnRelay2" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
-              CUT 12V
-            </button>
-          </div>
-
-          <!-- Zone Speed Slider -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-xs font-mono">
-              <span class="text-gray-400">SPEED (PWM)</span>
-              <span id="valPwm2" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
-            </div>
-            <input type="range" id="sliderZone2" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(2, this.value)">
-            <div class="flex justify-between text-[10px] font-mono text-gray-500">
-              <span id="zoneRpm2">1320 RPM</span>
-              <span id="zoneWatt2">4.7 W</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ZONE 3: Modular Fan Group 3 -->
-        <div id="cardZone3" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <span>ZONE 3</span>
-                <span class="text-gray-500">//</span>
-                <span class="text-gray-400 text-[9px]">GPIO 27 RELAY</span>
-              </div>
-              <input type="text" id="nameZone3" value="ZONE 3" onchange="updateZoneName(3, this.value)"
-                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
-                title="Klik untuk ubah label nama zona">
-              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span id="ledRelay3" class="w-3 h-3 rounded-full led-relay active"></span>
-            </div>
-          </div>
-
-          <!-- Relay Switch Control -->
-          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
-            <div class="font-mono text-xs">
-              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
-              <div id="relayStatus3" class="text-bm-green font-bold">RELAY: ENGAGED</div>
-            </div>
-            <button type="button" onclick="toggleZoneRelay(3)" id="btnRelay3" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
-              CUT 12V
-            </button>
-          </div>
-
-          <!-- Zone Speed Slider -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-xs font-mono">
-              <span class="text-gray-400">SPEED (PWM)</span>
-              <span id="valPwm3" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
-            </div>
-            <input type="range" id="sliderZone3" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(3, this.value)">
-            <div class="flex justify-between text-[10px] font-mono text-gray-500">
-              <span id="zoneRpm3">1320 RPM</span>
-              <span id="zoneWatt3">4.7 W</span>
-            </div>
-          </div>
-        </div>
+      <div id="zonesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Dynamic Zone Cards populated by renderZoneCards() -->
+      </div>
+    </div>
 
       </div>
     </div>
@@ -650,11 +536,17 @@
     const MAX_POINTS = 32;
 
     function resizeCanvas() {
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
+    renderZoneCards();
 
     // Fill initial histogram buffer
     for (let i = 0; i < MAX_POINTS; i++) {
@@ -784,7 +676,8 @@
       }
 
       // Calculate speed and power per zone based on Relay state
-      const MAX_ZONE_RPM = 2100;
+      const prof = fanProfiles[state.currentProfile] || fanProfiles[1800];
+      const MAX_ZONE_RPM = prof.maxRpm;
       let totalWatts = 0;
       let totalRpm = 0;
       let activeZonesCount = 0;
@@ -795,7 +688,7 @@
           activeZonesCount++;
           const targetRpm = Math.round((z.pwm / 100) * MAX_ZONE_RPM);
           z.rpm = Math.round(z.rpm + (targetRpm - z.rpm) * 0.4);
-          z.watts = parseFloat((0.8 + (z.pwm / 100) * 4.8).toFixed(1)); // ~5.6W max per 2-fan pair
+          z.watts = parseFloat((0.4 + (z.pwm / 100) * (prof.maxWatts * (z.fans || 2) - 0.4)).toFixed(1));
         } else {
           // Relay is CUTOFF (True 0-RPM)
           z.rpm = Math.max(0, Math.round(z.rpm * 0.2));
@@ -827,6 +720,7 @@
     setTimeout(syncWithHardware, 500);
 
     function updateUI() {
+      renderZoneCards();
       // Update Temperature readouts
       document.getElementById('tempValue').innerText = state.currentTemp.toFixed(1);
       
@@ -928,8 +822,8 @@
     }
 
     function renderHistogram() {
-      const w = canvas.width;
-      const h = canvas.height;
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
       ctx.clearRect(0, 0, w, h);
 
       // Grid Lines
