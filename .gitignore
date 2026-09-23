@@ -1,0 +1,46 @@
+# BreezeMate - Git Ignore Rules
+
+# Temporary & Working Files
+.tmp/
+*.tmp
+*.log
+gemini-code-1790143981221.md
+# Secrets & Credentials
+secrets.yaml
+.env
+.env.local
+*.local
+
+# PlatformIO & Embedded Build Artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+build/
+*.bin
+*.elf
+*.hex
+
+# ESPHome
+.esphome/
+
+# Arduino Core & Caches
+*.o
+*.a
+*.so
+
+# Editors & IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# OS Specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node / Frontend (if tooling added)
+node_modules/
+dist/

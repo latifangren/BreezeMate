@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BreezeMate // Modular Multi-Zone Thermal Deck</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Orbitron, Chakra Petch, Share Tech Mono, Teko -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Share+Tech+Mono&family=Teko:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bm: {
+              bg: '#08090c',
+              panel: '#13161c',
+              panelDark: '#0c0e12',
+              card: '#161a22',
+              border: '#232936',
+              borderLight: '#323b4e',
+              green: '#00ff66',
+              cyan: '#00e5ff',
+              orange: '#ff9900',
+              red: '#ff284d',
+              amber: '#ffb700',
+              gray: '#6b7280'
+            },
+            msi: {
+              bg: '#08090c',
+              panel: '#13161c',
+              panelDark: '#0c0e12',
+              card: '#161a22',
+              border: '#232936',
+              borderLight: '#323b4e',
+              green: '#00ff66',
+              cyan: '#00e5ff',
+              orange: '#ff9900',
+              red: '#ff284d',
+              amber: '#ffb700',
+              gray: '#6b7280'
+            }
+          },
+          fontFamily: {
+            teko: ['Teko', 'sans-serif'],
+            mono: ['"Share Tech Mono"', 'monospace'],
+            chakra: ['"Chakra Petch"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #060709;
+      background-image: 
+        radial-gradient(ellipse at 50% 10%, rgba(0, 229, 255, 0.04) 0%, transparent 60%),
+        linear-gradient(rgba(22, 27, 36, 0.45) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22, 27, 36, 0.45) 1px, transparent 1px);
+      background-size: 100% 100%, 26px 26px, 26px 26px;
+      color: #cbd5e1;
+      user-select: none;
+    }
+
+    /* Industrial Beveled Frame */
+    .bm-frame, .bm-frame {
+      background: linear-gradient(150deg, #1b2029 0%, #101217 45%, #0a0b0e 100%);
+      box-shadow: 
+        inset 1px 1px 0px rgba(255, 255, 255, 0.08),
+        inset -1px -1px 0px rgba(0, 0, 0, 0.95),
+        0 20px 45px rgba(0, 0, 0, 0.85),
+        0 0 25px rgba(0, 229, 255, 0.03);
+      border: 1px solid #242b38;
+      clip-path: polygon(
+        14px 0%, calc(100% - 14px) 0%, 
+        100% 14px, 100% calc(100% - 14px), 
+        calc(100% - 14px) 100%, 14px 100%, 
+        0% calc(100% - 14px), 0% 14px
+      );
+    }
+
+    .carbon-texture {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.4),
+        rgba(0, 0, 0, 0.4) 2px,
+        rgba(19, 24, 33, 0.4) 2px,
+        rgba(19, 24, 33, 0.4) 4px
+      );
+    }
+
+    /* Custom Sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 7px;
+      background: #080a0d;
+      border: 1px solid #283040;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 3px #000;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px;
+      width: 12px;
+      margin-top: -6.5px;
+      background: linear-gradient(to bottom, #00e5ff, #0088aa);
+      border-radius: 2px;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00e5ff;
+      border: 1px solid #ffffff;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    input[type=range]:disabled::-webkit-slider-thumb {
+      background: #475569;
+      box-shadow: none;
+      border-color: #64748b;
+      cursor: not-allowed;
+    }
+
+    /* Glow Utilities */
+    .glow-cyan { text-shadow: 0 0 12px rgba(0, 229, 255, 0.75); }
+    .glow-green { text-shadow: 0 0 12px rgba(0, 255, 102, 0.75); }
+    .glow-orange { text-shadow: 0 0 12px rgba(255, 153, 0, 0.75); }
+    .glow-red { text-shadow: 0 0 12px rgba(255, 40, 77, 0.75); }
+
+    /* Mechanical Relay Toggle LED */
+    .led-relay {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .led-relay.active {
+      background-color: #00ff66;
+      box-shadow: 0 0 10px #00ff66, 0 0 20px rgba(0, 255, 102, 0.5);
+    }
+    .led-relay.inactive {
+      background-color: #27303f;
+      box-shadow: inset 0 1px 2px #000;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-5 font-chakra">
+
+  <div class="w-full max-w-6xl bm-frame p-4 sm:p-6 relative">
+    
+    <!-- HEADER BAR: Status & Telemetry Header -->
+    <header class="flex flex-wrap items-center justify-between border-b border-[#232a36] pb-3 mb-5 gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="bg-bm-red text-black font-teko text-2xl font-bold px-2 py-0.5 tracking-wider rounded-sm shadow-[0_0_12px_rgba(255,40,77,0.6)]">
+          BM-12V-MOD
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-white tracking-widest font-teko uppercase leading-none">
+            BREEZE<span class="text-bm-cyan">MATE</span> <span class="text-xs font-mono text-bm-gray font-normal px-2 py-0.5 border border-[#2b3342] rounded">RELAY MATRIX PRO</span>
+          </h1>
+          <p class="text-[10px] text-gray-400 font-mono tracking-wider">MODULAR 12V 4-PIN PWM // MULTI-ZONE POWER CUTOFF</p>
+        </div>
+      </div>
+
+      <!-- Quick Telemetry Badges -->
+      <div class="flex items-center space-x-2 sm:space-x-3 text-xs font-mono">
+        <div class="bg-black/60 px-3 py-1 border border-[#202735] flex items-center space-x-2 rounded">
+          <span class="w-2 h-2 rounded-full bg-bm-green animate-ping"></span>
+          <span class="text-bm-green font-bold tracking-wider">ESP32: LIVE</span>
+        </div>
+        <div class="bg-black/60 px-3 py-1 border border-[#202735] hidden md:flex items-center space-x-2 rounded text-gray-300">
+          <span>ISOLATION:</span>
+          <span class="text-bm-cyan font-bold">12V DC CLEAN</span>
+        </div>
+        <div class="bg-black/60 px-3 py-1 border border-[#202735] flex items-center space-x-2 rounded text-gray-300">
+          <span>ACTIVE ZONES:</span>
+          <span id="badgeActiveZones" class="text-bm-green font-bold">3 / 3</span>
+        </div>
+
+        <div onclick="promptEspHost()" class="bg-black/60 px-3 py-1 border border-[#202735] flex items-center space-x-2 rounded cursor-pointer hover:border-bm-cyan transition-colors" title="Klik untuk hubungkan ke IP ESP32 (misal: breezemate.local atau 192.168.1.50)">
+          <span id="ledConn" class="w-2 h-2 rounded-full bg-bm-amber animate-pulse"></span>
+          <span id="textConn" class="text-[11px] font-mono text-bm-amber font-bold">DEMO MODE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- TOP ROW: Gauges and Thermal Overview -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
+      
+      <!-- Ambient Thermal Gauge (Left) -->
+      <div class="lg:col-span-4 bg-bm-panelDark border border-[#202633] p-4 rounded carbon-texture flex flex-col items-center relative overflow-hidden">
+        <div class="w-full flex justify-between items-center text-xs font-mono border-b border-[#232a36] pb-1 mb-2">
+          <span class="text-bm-cyan font-bold uppercase tracking-wider">AMBIENT SENSOR</span>
+          <span class="text-gray-400">DHT22 // GPIO 23</span>
+        </div>
+
+        <div class="relative w-44 h-44 my-1 flex items-center justify-center">
+          <svg class="w-full h-full" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="76" fill="none" stroke="#161b24" stroke-width="12" stroke-dasharray="360" stroke-dashoffset="100" stroke-linecap="round" transform="rotate(140 100 100)"/>
+            <circle id="tempArc" cx="100" cy="100" r="76" fill="none" stroke="url(#tempGrad)" stroke-width="12" stroke-dasharray="360" stroke-dashoffset="230" stroke-linecap="round" transform="rotate(140 100 100)" class="transition-all duration-500 ease-out"/>
+            <!-- Gauge Ticks -->
+            <g stroke="#3a4559" stroke-width="1.5">
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(-130 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(-90 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(-50 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(0 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(50 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(90 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(130 100 100)" />
+            </g>
+            <defs>
+              <linearGradient id="tempGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00e5ff" />
+                <stop offset="55%" stop-color="#ffb700" />
+                <stop offset="100%" stop-color="#ff284d" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center pt-2">
+            <span id="tempValue" class="font-teko text-5xl font-bold leading-none text-white glow-cyan tracking-wider">26.8</span>
+            <span class="text-xs font-mono text-bm-cyan uppercase tracking-widest mt-[-4px]">°C AMBIENT</span>
+            <span id="tempStatus" class="text-[10px] font-mono text-bm-green mt-1 bg-black/60 px-2 py-0.5 rounded border border-[#232b38]">COMFORT RANGE</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 w-full gap-2 mt-1 font-mono text-xs">
+          <div class="bg-black/50 p-2 border border-[#222937] rounded">
+            <div class="text-gray-500 text-[10px]">HUMIDITY</div>
+            <div id="humidValue" class="text-white font-bold text-sm">64.5 %</div>
+          </div>
+          <div class="bg-black/50 p-2 border border-[#222937] rounded">
+            <div class="text-gray-500 text-[10px]">TARGET SLEEP TEMP</div>
+            <div id="targetDisplay" class="text-bm-cyan font-bold text-sm">25.0 °C</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Preset & Master Throttle (Middle) -->
+      <div class="lg:col-span-4 bg-bm-panel border border-[#202633] p-4 rounded flex flex-col justify-between space-y-3">
+        <div class="flex justify-between items-center text-xs font-mono border-b border-[#232a36] pb-1">
+          <span class="text-white font-bold uppercase tracking-wider">AUTOMATION & PRESETS</span>
+          <span id="badgeMode" class="text-bm-cyan font-bold">ADAPTIVE AUTO</span>
+        </div>
+
+        <!-- Mode Select Buttons -->
+        <div>
+          <div class="text-[10px] font-mono text-gray-400 mb-1 uppercase tracking-wider">Operating Profile</div>
+          <div class="grid grid-cols-3 gap-1.5 font-mono text-xs">
+            <button type="button" onclick="setMode('auto')" id="btnAuto" class="py-2 px-1 bg-bm-cyan/20 text-bm-cyan border border-bm-cyan font-bold rounded hover:bg-bm-cyan/30 transition text-center">
+              ADAPTIVE
+            </button>
+            <button type="button" onclick="setMode('night')" id="btnNight" class="py-2 px-1 bg-[#161a22] text-gray-300 border border-[#27303e] hover:border-bm-cyan rounded transition text-center">
+              SLEEP (SAFE)
+            </button>
+            <button type="button" onclick="setMode('manual')" id="btnManual" class="py-2 px-1 bg-[#161a22] text-gray-300 border border-[#27303e] hover:border-bm-cyan rounded transition text-center">
+              MANUAL
+            </button>
+          </div>
+        </div>
+
+        <!-- Master Link Sync -->
+        <div class="bg-black/60 p-3 border border-[#242b38] rounded space-y-2">
+          <div class="flex justify-between items-center text-xs font-mono">
+            <span class="text-gray-300">MASTER THROTTLE (ALL ZONES)</span>
+            <span id="masterPwmValue" class="text-bm-green font-bold text-base glow-green font-teko">58 %</span>
+          </div>
+          <input type="range" id="masterSlider" min="0" max="100" value="58" class="w-full cursor-pointer" oninput="onMasterSlider(this.value)" disabled>
+          <div class="flex justify-between items-center text-[10px] font-mono text-gray-500">
+            <span>SYNC ALL ZONES</span>
+            <label class="flex items-center space-x-1 cursor-pointer text-gray-300">
+              <input type="checkbox" id="syncCheck" checked onchange="toggleSync(this.checked)" class="accent-cyan-400 rounded">
+              <span class="text-bm-cyan">LINK CHANNELS</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Target Temp Slider -->
+        <div class="bg-black/60 p-2.5 border border-[#242b38] rounded">
+          <div class="flex justify-between items-center text-xs font-mono mb-1">
+            <span class="text-gray-400">DESIRED TARGET TEMP</span>
+            <span id="targetSliderVal" class="text-bm-orange font-bold font-teko text-base">25.0 °C</span>
+          </div>
+          <input type="range" id="targetSlider" min="20" max="30" step="0.5" value="25" class="w-full cursor-pointer" oninput="onTargetSlider(this.value)">
+        </div>
+
+        <!-- Master Killswitch / All Relays Off -->
+        <div class="pt-1">
+          <button type="button" onclick="toggleAllRelays()" id="btnAllRelays" class="w-full py-2 bg-[#201014] hover:bg-bm-red/20 border border-bm-red/40 hover:border-bm-red text-bm-red font-mono text-xs font-bold rounded transition flex items-center justify-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-bm-red animate-pulse"></span>
+            <span id="allRelaysText">MASTER POWER CUTOFF (KILL ALL)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Aggregated Telemetry Tachometer (Right) -->
+      <div class="lg:col-span-4 bg-bm-panelDark border border-[#202633] p-4 rounded carbon-texture flex flex-col items-center relative overflow-hidden">
+        <div class="w-full flex justify-between items-center text-xs font-mono border-b border-[#232a36] pb-1 mb-2">
+          <span class="text-bm-green font-bold uppercase tracking-wider">AGGREGATE SPEED</span>
+          <span class="text-gray-400">TOTAL 6x 120mm PWM</span>
+        </div>
+
+        <div class="relative w-44 h-44 my-1 flex items-center justify-center">
+          <svg class="w-full h-full" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="76" fill="none" stroke="#161b24" stroke-width="12" stroke-dasharray="360" stroke-dashoffset="100" stroke-linecap="round" transform="rotate(140 100 100)"/>
+            <circle id="rpmArc" cx="100" cy="100" r="76" fill="none" stroke="url(#rpmGrad)" stroke-width="12" stroke-dasharray="360" stroke-dashoffset="200" stroke-linecap="round" transform="rotate(140 100 100)" class="transition-all duration-300 ease-out"/>
+            <g stroke="#3a4559" stroke-width="1.5">
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(-130 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(-90 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(-50 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(0 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(50 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="22" transform="rotate(90 100 100)" />
+              <line x1="100" y1="14" x2="100" y2="24" transform="rotate(130 100 100)" />
+            </g>
+            <defs>
+              <linearGradient id="rpmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00e5ff" />
+                <stop offset="60%" stop-color="#00ff66" />
+                <stop offset="100%" stop-color="#ff284d" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center pt-2">
+            <span id="rpmValue" class="font-teko text-5xl font-bold leading-none text-white glow-green tracking-wider">1320</span>
+            <span class="text-xs font-mono text-bm-green uppercase tracking-widest mt-[-4px]">AVG RPM</span>
+            <span id="noiseEstimate" class="text-[10px] font-mono text-gray-300 mt-1 bg-black/60 px-2 py-0.5 rounded border border-[#232b38]">~19.8 dBA (WHISPER)</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 w-full gap-2 mt-1 font-mono text-xs">
+          <div class="bg-black/50 p-2 border border-[#222937] rounded">
+            <div class="text-gray-500 text-[10px]">TOTAL POWER (12V)</div>
+            <div id="totalPower" class="text-bm-green font-bold text-sm glow-green">14.2 W</div>
+          </div>
+          <div class="bg-black/50 p-2 border border-[#222937] rounded">
+            <div class="text-gray-500 text-[10px]">EST. AIR VOLUME</div>
+            <div id="totalCfm" class="text-bm-cyan font-bold text-sm">114.5 CFM</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MODULAR FAN ZONES (RELAY + PWM INDEPENDENT CLUSTERS) -->
+    <div class="mb-5">
+      <div class="flex items-center justify-between mb-3 border-b border-[#232a36] pb-1.5">
+        <div class="flex items-center space-x-2">
+          <span class="w-2.5 h-2.5 bg-bm-cyan rotate-45 inline-block"></span>
+          <h2 class="text-sm font-mono text-white font-bold tracking-wider uppercase">
+            MODULAR FAN ARRAYS & RELAY ISOLATION CHANNELS
+          </h2>
+        </div>
+        <span class="text-[11px] font-mono text-gray-400">
+          TRUE 0-RPM VIA PHYSICAL RELAY DISCONNECT
+        </span>
+      </div>
+
+      <!-- 3 Modular Zone Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- ZONE 1: Modular Fan Group 1 -->
+        <div id="cardZone1" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
+          <!-- Zone Header -->
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <span>ZONE 1</span>
+                <span class="text-gray-500">//</span>
+                <span class="text-gray-400 text-[9px]">GPIO 25 RELAY</span>
+              </div>
+              <input type="text" id="nameZone1" value="ZONE 1" onchange="updateZoneName(1, this.value)"
+                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
+                title="Klik untuk ubah label nama zona">
+              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <span id="ledRelay1" class="w-3 h-3 rounded-full led-relay active"></span>
+            </div>
+          </div>
+
+          <!-- Relay Switch Control -->
+          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
+            <div class="font-mono text-xs">
+              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
+              <div id="relayStatus1" class="text-bm-green font-bold">RELAY: ENGAGED</div>
+            </div>
+            <button type="button" onclick="toggleZoneRelay(1)" id="btnRelay1" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
+              CUT 12V
+            </button>
+          </div>
+
+          <!-- Zone Speed Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-400">SPEED (PWM)</span>
+              <span id="valPwm1" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
+            </div>
+            <input type="range" id="sliderZone1" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(1, this.value)">
+            <div class="flex justify-between text-[10px] font-mono text-gray-500">
+              <span id="zoneRpm1">1320 RPM</span>
+              <span id="zoneWatt1">4.7 W</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZONE 2: Modular Fan Group 2 -->
+        <div id="cardZone2" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <span>ZONE 2</span>
+                <span class="text-gray-500">//</span>
+                <span class="text-gray-400 text-[9px]">GPIO 26 RELAY</span>
+              </div>
+              <input type="text" id="nameZone2" value="ZONE 2" onchange="updateZoneName(2, this.value)"
+                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
+                title="Klik untuk ubah label nama zona">
+              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <span id="ledRelay2" class="w-3 h-3 rounded-full led-relay active"></span>
+            </div>
+          </div>
+
+          <!-- Relay Switch Control -->
+          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
+            <div class="font-mono text-xs">
+              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
+              <div id="relayStatus2" class="text-bm-green font-bold">RELAY: ENGAGED</div>
+            </div>
+            <button type="button" onclick="toggleZoneRelay(2)" id="btnRelay2" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
+              CUT 12V
+            </button>
+          </div>
+
+          <!-- Zone Speed Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-400">SPEED (PWM)</span>
+              <span id="valPwm2" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
+            </div>
+            <input type="range" id="sliderZone2" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(2, this.value)">
+            <div class="flex justify-between text-[10px] font-mono text-gray-500">
+              <span id="zoneRpm2">1320 RPM</span>
+              <span id="zoneWatt2">4.7 W</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZONE 3: Modular Fan Group 3 -->
+        <div id="cardZone3" class="bg-bm-panelDark border border-[#242b38] rounded p-3 flex flex-col justify-between space-y-3 relative overflow-hidden transition-all duration-300">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-[10px] font-mono text-bm-cyan font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <span>ZONE 3</span>
+                <span class="text-gray-500">//</span>
+                <span class="text-gray-400 text-[9px]">GPIO 27 RELAY</span>
+              </div>
+              <input type="text" id="nameZone3" value="ZONE 3" onchange="updateZoneName(3, this.value)"
+                class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-bm-cyan outline-none text-sm font-bold text-white font-chakra w-full max-w-[190px] transition-colors"
+                title="Klik untuk ubah label nama zona">
+              <div class="text-[10px] font-mono text-gray-500">2x 120mm PWM // 12V VCC CUTOFF</div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <span id="ledRelay3" class="w-3 h-3 rounded-full led-relay active"></span>
+            </div>
+          </div>
+
+          <!-- Relay Switch Control -->
+          <div class="bg-black/50 p-2.5 border border-[#1f2633] rounded flex items-center justify-between">
+            <div class="font-mono text-xs">
+              <div class="text-gray-400 text-[10px]">12V VCC LINE</div>
+              <div id="relayStatus3" class="text-bm-green font-bold">RELAY: ENGAGED</div>
+            </div>
+            <button type="button" onclick="toggleZoneRelay(3)" id="btnRelay3" class="py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition">
+              CUT 12V
+            </button>
+          </div>
+
+          <!-- Zone Speed Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-400">SPEED (PWM)</span>
+              <span id="valPwm3" class="text-bm-cyan font-bold font-teko text-base">58 %</span>
+            </div>
+            <input type="range" id="sliderZone3" min="0" max="100" value="58" class="w-full" oninput="onZoneSlider(3, this.value)">
+            <div class="flex justify-between text-[10px] font-mono text-gray-500">
+              <span id="zoneRpm3">1320 RPM</span>
+              <span id="zoneWatt3">4.7 W</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- REAL-TIME TELEMETRY HISTOGRAM -->
+    <div class="bg-bm-panelDark border border-[#202633] p-3.5 rounded mb-4">
+      <div class="flex flex-wrap justify-between items-center mb-2 pb-1 border-b border-[#232a36] gap-2">
+        <div class="flex items-center space-x-4">
+          <span class="text-xs font-mono text-white font-bold uppercase tracking-wider">HARDWARE TELEMETRY STREAM</span>
+          <div class="flex items-center space-x-3 text-[11px] font-mono">
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-1 bg-bm-cyan inline-block"></span><span class="text-bm-cyan">ROOM TEMP (°C)</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-1 bg-bm-green inline-block"></span><span class="text-bm-green">THROTTLE (%)</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-1 bg-bm-orange inline-block"></span><span class="text-bm-orange">ACTIVE WATTS</span></span>
+          </div>
+        </div>
+        <div class="text-[11px] font-mono text-gray-500">
+          POLL: 1.0s // ESP32 PWM TIMER CLOCK: 25.0 kHz
+        </div>
+      </div>
+
+      <div class="relative w-full h-28 bg-black/80 rounded border border-[#1d222c] overflow-hidden">
+        <canvas id="telemetryCanvas" class="w-full h-full block"></canvas>
+      </div>
+    </div>
+
+    <!-- FOOTER TECHNICAL SAFETY -->
+    <footer class="flex flex-wrap items-center justify-between text-[11px] font-mono text-gray-500 pt-2 border-t border-[#1d222c] gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-bm-green"></span>
+        <span class="text-gray-300">ISOLATED DC ARCHITECTURE:</span>
+        <span>OPTICAL/TRANSISTOR RELAY ISOLATED // NO 220V HAZARD</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span>0-RPM HYSTERESIS: ACTIVE</span>
+        <span class="text-gray-400">BREEZEMATE-MOD V2.1.0</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Audio synthesis for authentic mechanical relay 'click' sound
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playRelayClick(engage) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = engage ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(engage ? 800 : 400, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    // Comprehensive System State
+    const state = {
+      isLive: false,
+      espHost: (window.location.protocol.startsWith('http') && window.location.hostname && window.location.hostname !== 'localhost') 
+               ? window.location.host 
+               : 'breezemate.local',
+      mode: 'auto', // 'auto', 'night', 'manual'
+      syncLinked: true,
+      currentTemp: 26.8,
+      targetTemp: 25.0,
+      humidity: 64.5,
+      masterPwm: 58,
+      zones: {
+        1: { name: 'Zone 1', gpio: 25, enabled: true, pwm: 58, fans: 2, rpm: 1320, watts: 4.7 },
+        2: { name: 'Zone 2', gpio: 26, enabled: true, pwm: 58, fans: 2, rpm: 1320, watts: 4.7 },
+        3: { name: 'Zone 3', gpio: 27, enabled: true, pwm: 58, fans: 2, rpm: 1320, watts: 4.7 }
+      },
+      history: []
+    };
+
+    function updateLiveBadge(online) {
+      const led = document.getElementById('ledConn');
+      const text = document.getElementById('textConn');
+      if (!led || !text) return;
+      if (online) {
+        led.className = "w-2 h-2 rounded-full bg-bm-green shadow-[0_0_8px_#00ff66]";
+        text.className = "text-[11px] font-mono text-bm-green font-bold";
+        text.innerText = "ESP32 LIVE";
+      } else {
+        led.className = "w-2 h-2 rounded-full bg-bm-amber animate-pulse";
+        text.className = "text-[11px] font-mono text-bm-amber font-bold";
+        text.innerText = "DEMO SIM";
+      }
+    }
+
+    function promptEspHost() {
+      const current = state.espHost || 'breezemate.local';
+      const input = prompt("Masukkan IP atau mDNS ESP32 BreezeMate Anda:\n(Contoh: breezemate.local atau 192.168.1.50)", current);
+      if (input !== null && input.trim() !== '') {
+        state.espHost = input.trim();
+        syncWithHardware();
+      }
+    }
+
+    function getApiBase() {
+      if (!state.espHost) return '';
+      if (state.espHost.startsWith('http://') || state.espHost.startsWith('https://')) return state.espHost;
+      return 'http://' + state.espHost;
+    }
+
+    function sendControl(params) {
+      if (!state.isLive && !window.location.protocol.startsWith('http')) return;
+      const base = getApiBase();
+      const query = new URLSearchParams(params).toString();
+      fetch(`${base}/api/control?${query}`, { method: 'GET', mode: 'cors' }).catch(() => {});
+    }
+
+    async function syncWithHardware() {
+      try {
+        const base = getApiBase();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch(`${base}/api/status`, { signal: controller.signal, mode: 'cors' });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+          const data = await res.json();
+          state.isLive = true;
+          updateLiveBadge(true);
+          
+          state.currentTemp = parseFloat(data.temperature);
+          state.currentHumid = parseFloat(data.humidity);
+          state.targetTemp = parseFloat(data.targetTemp);
+          state.mode = data.mode;
+          state.syncLinked = (data.syncLinked === true || data.syncLinked === "true");
+          state.masterPwm = parseInt(data.masterPwm);
+          
+          if (data.zones) {
+            for (let id in data.zones) {
+              if (state.zones[id]) {
+                state.zones[id].enabled = (data.zones[id].enabled === true || data.zones[id].enabled === "true");
+                state.zones[id].pwm = parseInt(data.zones[id].pwm);
+              }
+            }
+          }
+          updateUI();
+          return;
+        }
+      } catch (err) {
+        state.isLive = false;
+        updateLiveBadge(false);
+      }
+    }
+
+    // Canvas & Histogram Setup
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    const MAX_POINTS = 32;
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Fill initial histogram buffer
+    for (let i = 0; i < MAX_POINTS; i++) {
+      state.history.push({
+        temp: 26.5 + Math.sin(i / 3) * 0.4,
+        pwm: 55 + Math.sin(i / 3) * 6,
+        watts: 13.5
+      });
+    }
+
+    // Toggle Specific Zone Relay
+    function toggleZoneRelay(zoneId) {
+      const z = state.zones[zoneId];
+      z.enabled = !z.enabled;
+      playRelayClick(z.enabled);
+      sendControl({ zone: zoneId, relay: z.enabled ? 1 : 0 });
+      updateUI();
+    }
+
+    // Master Toggle All Relays
+    function toggleAllRelays() {
+      const anyActive = Object.values(state.zones).some(z => z.enabled);
+      const targetState = !anyActive;
+      playRelayClick(targetState);
+      for (let id in state.zones) {
+        state.zones[id].enabled = targetState;
+      }
+      updateUI();
+    }
+
+    // Mode Selector
+    function setMode(newMode) {
+      state.mode = newMode;
+      const btnAuto = document.getElementById('btnAuto');
+      const btnNight = document.getElementById('btnNight');
+      const btnManual = document.getElementById('btnManual');
+      const masterSlider = document.getElementById('masterSlider');
+      const badgeMode = document.getElementById('badgeMode');
+
+      [btnAuto, btnNight, btnManual].forEach(b => {
+        b.className = "py-2 px-1 bg-[#161a22] text-gray-300 border border-[#27303e] hover:border-bm-cyan rounded transition text-center";
+      });
+
+      if (newMode === 'auto') {
+        btnAuto.className = "py-2 px-1 bg-bm-cyan/20 text-bm-cyan border border-bm-cyan font-bold rounded hover:bg-bm-cyan/30 transition text-center";
+        masterSlider.disabled = true;
+        badgeMode.innerText = "ADAPTIVE AUTO";
+        badgeMode.className = "text-bm-cyan font-bold";
+      } else if (newMode === 'night') {
+        btnNight.className = "py-2 px-1 bg-bm-orange/20 text-bm-orange border border-bm-orange font-bold rounded hover:bg-bm-orange/30 transition text-center";
+        masterSlider.disabled = true;
+        badgeMode.innerText = "SLEEP COMFORT";
+        badgeMode.className = "text-bm-orange font-bold";
+      } else {
+        btnManual.className = "py-2 px-1 bg-bm-green/20 text-bm-green border border-bm-green font-bold rounded hover:bg-bm-green/30 transition text-center";
+        masterSlider.disabled = false;
+        badgeMode.innerText = "MANUAL OVERRIDE";
+        badgeMode.className = "text-bm-green font-bold";
+      }
+      updateUI();
+    }
+
+    // Toggle Synchronized Channels
+    function toggleSync(isLinked) {
+      state.syncLinked = isLinked;
+      if (isLinked) {
+        // Sync all zone PWMs with master
+        for (let id in state.zones) {
+          state.zones[id].pwm = state.masterPwm;
+        }
+      }
+      updateUI();
+    }
+
+    // Master Slider Input
+    function onMasterSlider(val) {
+      state.masterPwm = parseInt(val);
+      if (state.syncLinked) {
+        for (let id in state.zones) {
+          state.zones[id].pwm = state.masterPwm;
+        }
+      }
+      updateUI();
+    }
+
+    // Individual Zone Slider
+    function onZoneSlider(zoneId, val) {
+      state.zones[zoneId].pwm = parseInt(val);
+      if (state.syncLinked) {
+        // Break sync if user tunes one independently
+        state.syncLinked = false;
+        document.getElementById('syncCheck').checked = false;
+      }
+      updateUI();
+    }
+
+    function onTargetSlider(val) {
+      state.targetTemp = parseFloat(val);
+      document.getElementById('targetSliderVal').innerText = state.targetTemp.toFixed(1) + " °C";
+      document.getElementById('targetDisplay').innerText = state.targetTemp.toFixed(1) + " °C";
+    }
+
+    // Simulation Tick Engine (1 Hz)
+    function simulateTick() {
+      // Room temperature slight thermal drift
+      const deltaTemp = (Math.random() - 0.49) * 0.12;
+      state.currentTemp = Math.max(22.0, Math.min(34.0, state.currentTemp + deltaTemp));
+
+      // Calculate Target PWM if in Auto or Night profile
+      if (state.mode === 'auto') {
+        const diff = state.currentTemp - state.targetTemp;
+        let calc = 30 + (diff * 22);
+        state.masterPwm = Math.round(Math.max(15, Math.min(100, calc)));
+        if (state.syncLinked) {
+          for (let id in state.zones) state.zones[id].pwm = state.masterPwm;
+        }
+      } else if (state.mode === 'night') {
+        // Whisper quiet sleep curve
+        let nightVal = 20;
+        if (state.currentTemp > 27.0) nightVal = 42;
+        else if (state.currentTemp > 25.5) nightVal = 28;
+        else nightVal = 18;
+        state.masterPwm = nightVal;
+        if (state.syncLinked) {
+          for (let id in state.zones) state.zones[id].pwm = nightVal;
+        }
+      }
+
+      // Calculate speed and power per zone based on Relay state
+      const MAX_ZONE_RPM = 2100;
+      let totalWatts = 0;
+      let totalRpm = 0;
+      let activeZonesCount = 0;
+
+      for (let id in state.zones) {
+        const z = state.zones[id];
+        if (z.enabled) {
+          activeZonesCount++;
+          const targetRpm = Math.round((z.pwm / 100) * MAX_ZONE_RPM);
+          z.rpm = Math.round(z.rpm + (targetRpm - z.rpm) * 0.4);
+          z.watts = parseFloat((0.8 + (z.pwm / 100) * 4.8).toFixed(1)); // ~5.6W max per 2-fan pair
+        } else {
+          // Relay is CUTOFF (True 0-RPM)
+          z.rpm = Math.max(0, Math.round(z.rpm * 0.2));
+          z.watts = 0.0;
+        }
+        totalWatts += z.watts;
+        totalRpm += z.rpm;
+      }
+
+      // Record sample in telemetry buffer
+      state.history.push({
+        temp: state.currentTemp,
+        pwm: state.masterPwm,
+        watts: totalWatts
+      });
+      if (state.history.length > MAX_POINTS) state.history.shift();
+
+      updateUI();
+      renderHistogram();
+    }
+
+    setInterval(() => {
+      syncWithHardware();
+      if (!state.isLive) {
+        simulateTick();
+      }
+    }, 1500);
+    // Initial sync probe
+    setTimeout(syncWithHardware, 500);
+
+    function updateUI() {
+      // Update Temperature readouts
+      document.getElementById('tempValue').innerText = state.currentTemp.toFixed(1);
+      
+      const tempStatus = document.getElementById('tempStatus');
+      if (state.currentTemp < 24.5) {
+        tempStatus.innerText = "CHILLY / SLEEP SAFE";
+        tempStatus.className = "text-[10px] font-mono text-bm-cyan mt-1 bg-black/60 px-2 py-0.5 rounded border border-[#232b38]";
+      } else if (state.currentTemp <= 27.5) {
+        tempStatus.innerText = "OPTIMAL COMFORT";
+        tempStatus.className = "text-[10px] font-mono text-bm-green mt-1 bg-black/60 px-2 py-0.5 rounded border border-[#232b38]";
+      } else {
+        tempStatus.innerText = "WARM ROOM / COOLING ACTIVE";
+        tempStatus.className = "text-[10px] font-mono text-bm-red mt-1 bg-black/60 px-2 py-0.5 rounded border border-[#232b38]";
+      }
+
+      // Master slider
+      document.getElementById('masterPwmValue').innerText = state.masterPwm + " %";
+      document.getElementById('masterSlider').value = state.masterPwm;
+
+      // Update Individual Zones
+      let activeZonesCount = 0;
+      let totalWatts = 0;
+      let totalRpm = 0;
+
+      for (let id = 1; id <= 3; id++) {
+        const z = state.zones[id];
+        const card = document.getElementById('cardZone' + id);
+        const led = document.getElementById('ledRelay' + id);
+        const relayStatus = document.getElementById('relayStatus' + id);
+        const btnRelay = document.getElementById('btnRelay' + id);
+        const slider = document.getElementById('sliderZone' + id);
+        const valPwm = document.getElementById('valPwm' + id);
+        const zoneRpm = document.getElementById('zoneRpm' + id);
+        const zoneWatt = document.getElementById('zoneWatt' + id);
+
+        slider.value = z.pwm;
+        valPwm.innerText = z.pwm + " %";
+        zoneWatt.innerText = z.watts.toFixed(1) + " W";
+
+        if (z.enabled) {
+          activeZonesCount++;
+          totalWatts += z.watts;
+          totalRpm += z.rpm;
+
+          led.className = "w-3 h-3 rounded-full led-relay active";
+          relayStatus.innerText = "RELAY: ENGAGED";
+          relayStatus.className = "text-bm-green font-bold";
+          btnRelay.innerText = "CUT 12V";
+          btnRelay.className = "py-1 px-3 bg-bm-green/20 hover:bg-bm-green/30 text-bm-green border border-bm-green/60 text-xs font-mono font-bold rounded transition";
+          zoneRpm.innerText = z.rpm + " RPM";
+          card.style.opacity = "1";
+          slider.disabled = (state.mode !== 'manual' && state.syncLinked);
+        } else {
+          led.className = "w-3 h-3 rounded-full led-relay inactive";
+          relayStatus.innerText = "RELAY: CUTOFF (OFF)";
+          relayStatus.className = "text-bm-red font-bold";
+          btnRelay.innerText = "ENGAGE 12V";
+          btnRelay.className = "py-1 px-3 bg-bm-red/20 hover:bg-bm-red/30 text-bm-red border border-bm-red/60 text-xs font-mono font-bold rounded transition";
+          zoneRpm.innerText = "0 RPM (OFF)";
+          card.style.opacity = "0.6";
+          slider.disabled = true;
+        }
+      }
+
+      // Header and aggregate cards
+      document.getElementById('badgeActiveZones').innerText = `${activeZonesCount} / 3`;
+      const avgRpm = activeZonesCount > 0 ? Math.round(totalRpm / activeZonesCount) : 0;
+      document.getElementById('rpmValue').innerText = avgRpm;
+      document.getElementById('totalPower').innerText = totalWatts.toFixed(1) + " W";
+
+      // Estimated CFM & Acoustics
+      const totalCfm = ((avgRpm / 2000) * 58 * activeZonesCount).toFixed(1);
+      document.getElementById('totalCfm').innerText = `${totalCfm} CFM`;
+
+      const dba = activeZonesCount === 0 ? 0 : 14 + (state.masterPwm * 0.18) + (activeZonesCount * 1.5);
+      document.getElementById('noiseEstimate').innerText = activeZonesCount === 0 
+        ? "0.0 dBA (SILENT - ALL CUT)" 
+        : `~${dba.toFixed(1)} dBA (${state.masterPwm < 35 ? 'WHISPER' : state.masterPwm < 70 ? 'BALANCED' : 'TURBO'})`;
+
+      // Master Killswitch Button state
+      const btnAllRelays = document.getElementById('btnAllRelays');
+      const allRelaysText = document.getElementById('allRelaysText');
+      if (activeZonesCount === 0) {
+        allRelaysText.innerText = "RESTORE ALL RELAYS (POWER ON)";
+        btnAllRelays.className = "w-full py-2 bg-bm-green/20 hover:bg-bm-green/30 border border-bm-green text-bm-green font-mono text-xs font-bold rounded transition flex items-center justify-center space-x-2";
+      } else {
+        allRelaysText.innerText = "MASTER POWER CUTOFF (KILL ALL ZONES)";
+        btnAllRelays.className = "w-full py-2 bg-[#201014] hover:bg-bm-red/20 border border-bm-red/40 hover:border-bm-red text-bm-red font-mono text-xs font-bold rounded transition flex items-center justify-center space-x-2";
+      }
+
+      // Circular Dial Gauges Math
+      const tempPercent = Math.max(0, Math.min(1, (state.currentTemp - 20) / 15));
+      const tempOffset = 340 - (tempPercent * 230);
+      document.getElementById('tempArc').style.strokeDashoffset = tempOffset;
+
+      const rpmPercent = Math.max(0, Math.min(1, avgRpm / 2100));
+      const rpmOffset = 340 - (rpmPercent * 230);
+      document.getElementById('rpmArc').style.strokeDashoffset = rpmOffset;
+    }
+
+    function renderHistogram() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid Lines
+      ctx.strokeStyle = '#181e28';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let y = 0; y < h; y += 22) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+
+      const step = w / (MAX_POINTS - 1);
+
+      // 1. Watts Line (Orange)
+      ctx.strokeStyle = '#ff9900';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      state.history.forEach((pt, i) => {
+        const x = i * step;
+        const norm = Math.min(1, pt.watts / 25);
+        const y = h - (norm * (h - 16)) - 8;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+
+      // 2. PWM Throttle Line (Green)
+      ctx.strokeStyle = '#00ff66';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      state.history.forEach((pt, i) => {
+        const x = i * step;
+        const y = h - (pt.pwm / 100) * (h - 16) - 8;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // 3. Temperature Line (Cyan)
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      state.history.forEach((pt, i) => {
+        const x = i * step;
+        const normTemp = (pt.temp - 20) / 15;
+        const y = h - (normTemp * (h - 16)) - 8;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    // Boot Initialization
+    updateUI();
+    renderHistogram();
+  </script>
+</body>
+</html>
